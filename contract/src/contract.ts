@@ -1,5 +1,7 @@
-import { NearBindgen, near, call, view, UnorderedMap } from 'near-sdk-js';
+import { NearBindgen, near, call, view, initialize, UnorderedMap } from 'near-sdk-js';
 import { AccountId } from 'near-sdk-js/lib/types';
+import { assert } from './utils'
+import { STORAGE_COST } from './model'
 
 type Side = 'heads' | 'tails'
 
@@ -14,13 +16,20 @@ function simulateCoinFlip(): Side {
 
 @NearBindgen({})
 class CoinFlip {
+  beneficiary: string = "luckymoneytest.testnet";
   points: UnorderedMap<number> = new UnorderedMap<number>("points");
 
+
+  @initialize({ privateFunction: true })
+  init({ beneficiary }: { beneficiary: string }) {
+    this.beneficiary = beneficiary
+  }
+  
   /*
     Flip a coin. Pass in the side (heads or tails) and a random number will be chosen
     indicating whether the flip was heads or tails. If you got it right, you get a point.
   */
-  @call({})
+  @call({ payableFunction: true })
   flip_coin({ player_guess }: { player_guess: Side }): Side {
     // Check who called the method
     const player: AccountId = near.predecessorAccountId();
@@ -28,7 +37,6 @@ class CoinFlip {
 
     // Simulate a Coin Flip
     const outcome = simulateCoinFlip();
-
     // Get the current player points
     let player_points: number = this.points.get(player, { defaultValue: 0 })
 
@@ -40,12 +48,28 @@ class CoinFlip {
       near.log(`The result was ${outcome}, you lost a point`);
       player_points = player_points ? player_points - 1 : 0;
     }
+    // Get who is calling the method and how much $NEAR they attached
+    let donor = near.predecessorAccountId();
+    let donationAmount: bigint = near.attachedDeposit() as bigint;
+    // Send the money to the beneficiary
+    const promise = near.promiseBatchCreate(this.beneficiary)
+    //const promise = near.promiseBatchCreate("luckymoneytest.testnet")
+    //let deposit = utils.format.parseNearAmount(amount.toString())
+    near.promiseBatchActionTransfer(promise, donationAmount)
 
     // Store the new points
     this.points.set(player, player_points)
 
     return outcome
   }
+
+  @call({ privateFunction: true })
+  change_beneficiary(beneficiary) {
+    this.beneficiary = beneficiary;
+  }
+
+  @view({})
+  get_beneficiary(): string { return this.beneficiary }
 
   // View how many points a specific player has
   @view({})

@@ -1,0 +1,1 @@
+export const STORAGE_COST: bigint = BigInt("1000000000000000000000")
