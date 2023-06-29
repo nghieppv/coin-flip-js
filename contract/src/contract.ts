@@ -6,7 +6,7 @@ type Side = 'heads' | 'tails'
 function simulateCoinFlip(): Side {
   // randomSeed creates a random string, learn more about it in the README
   const randomString: string = near.randomSeed().toString();
-
+  near.log(`RandomString is ${randomString}`);
   // If the last charCode is even we choose heads, otherwise tails
   return randomString.charCodeAt(0) % 2 ? 'heads' : 'tails';
 }
