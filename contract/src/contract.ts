@@ -1,4 +1,4 @@
-import { NearBindgen, near, call, view, initialize, UnorderedMap } from 'near-sdk-js';
+import { NearBindgen, near, call, view, initialize, UnorderedMap, NearPromise } from 'near-sdk-js';
 import { AccountId } from 'near-sdk-js/lib/types';
 import { assert } from './utils'
 import { STORAGE_COST } from './model'
@@ -24,6 +24,13 @@ class CoinFlip {
   init({ beneficiary }: { beneficiary: string }) {
     this.beneficiary = beneficiary
   }
+
+  @call({ payableFunction: true })
+  transfer({ to, amount }: { to: AccountId, amount: bigint }) {
+    NearPromise.new(to).transfer(amount);
+    //******************************************* */
+    // chưa chuyển tiền từ contract tới accountid được
+  }
   
   /*
     Flip a coin. Pass in the side (heads or tails) and a random number will be chosen
@@ -31,6 +38,13 @@ class CoinFlip {
   */
   @call({ payableFunction: true })
   flip_coin({ player_guess }: { player_guess: Side }): Side {
+    // Get who is calling the method and how much $NEAR they attached
+    //let donor = near.predecessorAccountId();
+    let donationAmount: bigint = near.attachedDeposit() as bigint;
+    // Send the money to the beneficiary
+    const promise = near.promiseBatchCreate(this.beneficiary);
+    near.promiseBatchActionTransfer(promise, donationAmount);
+    
     // Check who called the method
     const player: AccountId = near.predecessorAccountId();
     near.log(`${player} chose ${player_guess}`);
@@ -44,18 +58,13 @@ class CoinFlip {
     if (player_guess == outcome) {
       near.log(`The result was ${outcome}, you get a point!`);
       player_points += 1;
+      //NearPromise.new(near.currentAccountId()).transfer(donationAmount + donationAmount);
+      this.transfer({to: player, amount: donationAmount + donationAmount});
     } else {
       near.log(`The result was ${outcome}, you lost a point`);
       player_points = player_points ? player_points - 1 : 0;
     }
-    // Get who is calling the method and how much $NEAR they attached
-    let donor = near.predecessorAccountId();
-    let donationAmount: bigint = near.attachedDeposit() as bigint;
-    // Send the money to the beneficiary
-    const promise = near.promiseBatchCreate(this.beneficiary)
-    //const promise = near.promiseBatchCreate("luckymoneytest.testnet")
-    //let deposit = utils.format.parseNearAmount(amount.toString())
-    near.promiseBatchActionTransfer(promise, donationAmount)
+    
 
     // Store the new points
     this.points.set(player, player_points)
