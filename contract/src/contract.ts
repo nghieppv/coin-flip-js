@@ -1,10 +1,10 @@
-import { NearBindgen, near, call, view, initialize, UnorderedMap, NearPromise } from 'near-sdk-js';
+import { NearBindgen, near, call, view, bytes, initialize, UnorderedMap, NearPromise } from 'near-sdk-js';
 import { AccountId } from 'near-sdk-js/lib/types';
 import { assert } from './utils'
 import { STORAGE_COST } from './model'
 
 type Side = 'heads' | 'tails'
-
+const CALL_GAS: bigint = BigInt("10000000000000");
 function simulateCoinFlip(): Side {
   // randomSeed creates a random string, learn more about it in the README
   const randomString: string = near.randomSeed().toString();
@@ -30,6 +30,10 @@ export class CoinFlip {
     return NearPromise.new(to).transfer(amount);
   }
 
+  pay2({ amount, to }) {
+    return NearPromise.new(to).functionCall("set_awa", "howdy", amount, CALL_GAS);
+  }
+
   @call({ payableFunction: true })
   transfer({ to, amount }: { to: AccountId, amount: bigint }) {
     NearPromise.new(to).transfer(amount);
@@ -38,12 +42,16 @@ export class CoinFlip {
     //https://docs.near.org/sdk/js/promises/token-tx
   }
   
+  /*@call({ payableFunction: true })
+  flip_coin({ player_guess }: { player_guess: Side }): Side {
+    this.flip_coin2({player_guess: player_guess}).
+  }*/
   /*
     Flip a coin. Pass in the side (heads or tails) and a random number will be chosen
     indicating whether the flip was heads or tails. If you got it right, you get a point.
   */
   @call({ payableFunction: true })
-  flip_coin({ player_guess }: { player_guess: Side }): Side {
+  flip_coin({ player_guess }: { player_guess: Side }) {
     // Get who is calling the method and how much $NEAR they attached
     //let donor = near.predecessorAccountId();
     let donationAmount: bigint = near.attachedDeposit() as bigint;
@@ -68,19 +76,20 @@ export class CoinFlip {
       //var amo = donationAmount + donationAmount;
       var ple = near.currentAccountId();
       
-      this.transfer({to: player, amount: amount});
+      //this.transfer({to: player, amount: amount});
       
       near.log(`Transfer to ${player} / ${ple}, amount = ${amount} success!`);
     } else {
       near.log(`The result was ${outcome}, you lost a point`);
       player_points = player_points ? player_points - 1 : 0;
     }
-    this.pay({ "amount": amount, "to": player});
+    //this.pay({ "amount": amount, "to": player});
+    //this.pay2({ "amount": amount, "to": player});
 
     // Store the new points
-    this.points.set(player, player_points)
-
-    return outcome
+    this.points.set(player, player_points);
+    return NearPromise.new(player).transfer(amount);
+   // return outcome
   }
 
   @call({ privateFunction: true })

@@ -15,7 +15,7 @@ import { setupLedger } from '@near-wallet-selector/ledger';
 import { setupMyNearWallet } from '@near-wallet-selector/my-near-wallet';
 
 const THIRTY_TGAS = '30000000000000';
-const NO_DEPOSIT = '1000000000000000000000000';
+const NO_DEPOSIT = '1500000000000000000000000';
 
 // Wallet that simplifies using the wallet selector
 export class Wallet {
