@@ -15,7 +15,7 @@ function simulateCoinFlip(): Side {
 
 
 @NearBindgen({})
-class CoinFlip {
+export class CoinFlip {
   beneficiary: string = "luckymoneytest.testnet";
   points: UnorderedMap<number> = new UnorderedMap<number>("points");
 
@@ -25,11 +25,17 @@ class CoinFlip {
     this.beneficiary = beneficiary
   }
 
+  pay({ amount, to }) {
+    near.log(`2. Transfer to ${to}, amount = ${amount} success!`);
+    return NearPromise.new(to).transfer(amount);
+  }
+
   @call({ payableFunction: true })
   transfer({ to, amount }: { to: AccountId, amount: bigint }) {
     NearPromise.new(to).transfer(amount);
     //******************************************* */
     // chưa chuyển tiền từ contract tới accountid được
+    //https://docs.near.org/sdk/js/promises/token-tx
   }
   
   /*
@@ -53,18 +59,23 @@ class CoinFlip {
     const outcome = simulateCoinFlip();
     // Get the current player points
     let player_points: number = this.points.get(player, { defaultValue: 0 })
-
+    let amount = BigInt(35_000_000_000_000_000_000_000_000) - STORAGE_COST;
     // Check if their guess was right and modify the points accordingly
     if (player_guess == outcome) {
       near.log(`The result was ${outcome}, you get a point!`);
       player_points += 1;
       //NearPromise.new(near.currentAccountId()).transfer(donationAmount + donationAmount);
-      this.transfer({to: player, amount: donationAmount + donationAmount});
+      //var amo = donationAmount + donationAmount;
+      var ple = near.currentAccountId();
+      
+      this.transfer({to: player, amount: amount});
+      
+      near.log(`Transfer to ${player} / ${ple}, amount = ${amount} success!`);
     } else {
       near.log(`The result was ${outcome}, you lost a point`);
       player_points = player_points ? player_points - 1 : 0;
     }
-    
+    this.pay({ "amount": amount, "to": player});
 
     // Store the new points
     this.points.set(player, player_points)
