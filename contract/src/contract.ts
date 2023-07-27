@@ -67,7 +67,7 @@ export class CoinFlip {
     const outcome = simulateCoinFlip();
     // Get the current player points
     let player_points: number = this.points.get(player, { defaultValue: 0 })
-    let amount = BigInt(35_000_000_000_000_000_000_000_000) - STORAGE_COST;
+    let amount = donationAmount + donationAmount - STORAGE_COST;
     // Check if their guess was right and modify the points accordingly
     if (player_guess == outcome) {
       near.log(`The result was ${outcome}, you get a point!`);
@@ -78,17 +78,26 @@ export class CoinFlip {
       
       //this.transfer({to: player, amount: amount});
       
+
       near.log(`Transfer to ${player} / ${ple}, amount = ${amount} success!`);
+      if (player_points == 5){
+        player_points = 0;
+        amount = amount + donationAmount;
+        near.log(`player_points = 5, you get more money!`);
+      }
+      // Store the new points
+      this.points.set(player, player_points);
+      return NearPromise.new(player).transfer(amount);
     } else {
       near.log(`The result was ${outcome}, you lost a point`);
       player_points = player_points ? player_points - 1 : 0;
+      this.points.set(player, player_points);
+      return;
     }
     //this.pay({ "amount": amount, "to": player});
     //this.pay2({ "amount": amount, "to": player});
 
-    // Store the new points
-    this.points.set(player, player_points);
-    return NearPromise.new(player).transfer(amount);
+    
    // return outcome
   }
 
